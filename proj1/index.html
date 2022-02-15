@@ -44,7 +44,9 @@
     <img src="images/img1.png" align="middle" width="800px"/>
     <figcaption align="middle">The interesting thing to note here is the thin pick triangle that has aliasing. Some parts of the triangle are cut off due to aliasing during rasterization.</figcaption>
 </div>
-
+<p>
+    This part was fairly straightforward after I read through most of the starter code. Initially, I was not sure how some of the classes like Color worked, but the code was pretty clear. The implementation itself was fairly simple: iterating through pixels and filling in colors.
+</p>
 
 <h3 align="middle">Part 2: Antialiasing triangles by Supersampling</h3>
 <p>
@@ -78,6 +80,9 @@
 <p>
     With sample rate 1, there is no supersampling which means the image is experiencing aliasing. Pixels inside the triangle are magenta while pixels outside are white. With sampling rate of 4, the pixel is subdived into 4 before rasterization is done so we get light magenta colors for some squares. With supersample of 16, we get each pixel subdivided into 16 parts which makes the boundary of the traingle much smoother and reduces aliasing. The color of each pixel is determine through an average of all the subpixel's color.
 </p>
+<p>
+    I spent a lot of time debugging this part of the project. When doing supersampling, I increased the size of the sample buffer; however, I was not indexing into the sample buffer correctly. My expression to index into the buffer was not filling up all the slots inside the buffer. I had to go through the debugger and work out the values by hand to find the error. After that I wrote out the expression by hand and reimplemented the indexing. This solved the problem in the end and I was able to index correctly.
+</p>
 
 <h3 align="middle">Part 3: Transforms</h3>
 <p>
@@ -93,7 +98,6 @@
 
 </p>
 
-
 <h2 align="middle">Section II: Sampling</h2>
 
 <h3 align="middle">Part 4: Barycentric coordinates</h3>
@@ -105,7 +109,9 @@
     <img src="images/img6.png" align="middle" width="800px" />
     <figcaption align="middle"> Image svg/basic/test7.svg with sample rate 1</figcaption>
 </div>
-
+<p>
+    I did not really have trouble understanding and implementing this section of the project. I reused the old code and added calculations for alpha, gamma, and beta which was pretty straightforward. I took all the equations from the lecture slides.
+</p>
 
 <h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
 <p>
@@ -135,6 +141,13 @@
         </tr>
     </table>
 </div>
+<p>
+    The differences between nearest sampling and bilinear sampling are quite clear. As seen in the images, both the nearest sampling examples resulted in a graining image around the borders of black and white. When looking at the borders the pixels are not blended smoothly but rather you can clearly see different pixels. However, when you look at both of the bilinear samplings you see a smoother blend between the two contrasting colors which yields a less grainy image. There is a big difference between the two methods when there is a high contrast neighboring pixel. When doing the nearest neighbor pixel sampling, we take the nearest pixel in the texture map is not a good representation of the intermediate region. However, bilinear pixel sampling allows us to take into account those intermediate values and get a better representation through interpolation.
+</p>
+<p>
+    The problems I encountered in this part were mainly trying to figure out how to relate all the functions together. Since these new functions in the texture.cpp file was never called before I was not sure which order to call them. However, after experimenting and rereading some of the notes I was able to figure it out. Another problem I had was I forgot to multiply the converted (u, v) coordinates with the dimensions of the texture space which then outputs the wrong image. I went through piazza and fixed the bug. I was also not initially clamping the values that were outside of the texture frame which caused a slight bug in the corners of the image. After I looked on piazza I was able to solve this problem.
+</p>
+
 
 
 <h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
@@ -169,7 +182,13 @@
         </tr>
     </table>
 </div>
+<p>
+    These images show how linear level sampling using mipmap can help reduce aliasing in the image. Objects that are far away struggles with aliasing when we use level zero mipmap. In this case, the door frame is really jagged when using level zero mipmap. However, the blur produced with the nearest level mipmap helps anti-alias the door frame.
+</p>
+<p>
+    The only problem I encountered in this section was calculating the correct level value. I had a bug where I forgot to take the logarithm base 2 value of the L value. This caused the image to look weird, but once that was fixed the algorithm was working properly. 
 
+</p>
 
 
 </div></body>
