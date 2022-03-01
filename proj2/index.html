@@ -112,6 +112,14 @@
 </div>
 
 <h3 align="middle">Part 4: Edge Flip</h3>
+<div align="middle">
+    <table>
+            <td>
+                <img src="images/diagram.png" align="middle" width="500px" />
+                
+            </td>
+    </table>
+</div>
 <p>
 	The implementation of edge flip requires keeping track of and reassigning a lot of variables including edges, half edges, vertices, and faces. In the beginning, I had to extract the variables from the given EdgeIter parameter. Then, I went through all the variables one by one and reassigned them to the appropriate value, according to the diagram above. All of the half-edges associated with the flip-edge need to be assigned to the right values using the setNeighbor function. In order to fetch the half edges, I used the twin and next attributes. The vertices are also obtained by fetching the corresponding half edges that point outwards. The edges and faces are obtained by taking the half-edge that is part of that edge or face.</p>
 <p>
