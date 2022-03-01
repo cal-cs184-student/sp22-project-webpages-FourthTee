@@ -32,13 +32,14 @@
 <div>
 
 <h2 align="middle">Overview</h2>
-<p>In this project, I’ve built a rasterizer that is able to sample pixels from sample space onto screen space. In the beginning, I started by implementing a simple triangle rasterizer and added anti-aliasing features like super-sampling. Next, I implemented transformations using homogeneous coordinates which allows shapes to translate, scale, and rotate. I also implemented barycentric interpolation using barycentric coordinates. Finally, I implemented different algorithms for texture mapping including nearest-pixel and bilinear sampling. I also added level sampling using mipmaps for texture mapping. This project is a tool that rasterizes 2D images using different algorithms discussed in the CS184 class. I think this project helped reinforce what I initially learned in the lectures. I thought the idea of texture mapping using the mipmap levels was really interesting. I don’t really know how they derived the equations for coming up with the levels, but seeing it in action when I implemented it was very interesting. Some parts of the image were blurry and some were at high resolution due to the depth perception. I found this really interesting when playing around with the different level sampling algorithms like nearest and bilinear. In conjunction with the pixel sampling, I was interesting seeing the anti-aliased texture mapping using trilinear sampling.</p>
-
+<p>
+    In this project, I’ve built a program that is able to evaluate bezier curves and bezier surfaces using de Casteljau’s algorithm. In addition, I’ve built a program that is able to perform edge operations like edge flip and edge flip on triangle meshes. Finally, I wrote code to run the Loop Subdivision algorithm which upsamples a triangle mesh. As a whole, this project is more about writing code to modify triangle meshes of various shapes. I think the thing I found the most interesting was how implementing the area-weighted vertex normal helped the mesh look. The shading was way smoother with the algorithm making the object look a lot more realistic. I’ve learned a lot about working with triangle meshes in this project since every part is so tedious and any error cascades throughout the mesh. When I was writing the loop subdivision algorithm, it took me a while to figure out that there was a small bug in my edge flip which causes my loop subdivision to not work properly. I would see parts of the mesh not getting shade in as a result of this. 
+</p>
 <h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
 
 <h3 align="middle">Part 1: Bezier Curves with 1D de Casteljau Subdivision</h3>
  <p>In this part of the project, I implemented the evaluateStep function which performs one step of de Casteljau’s Algorithm. De Casteljau’s algorithm is a recursive algorithm used to evaluate bezier curves. The algorithm outputs a point that lies on the bezier curve given a set of control points. The implementation was fairly simple and involved using linear interpolation given a parameter t. This function requires only one step of evaluation for the de Casteljau’s algorithm, which means I just had to pair up the neighboring points and run a LERP function on them. Given n control points, the function will return n-1 points based on the LERP calculation.</p>
-
+<p>The implementation of this part was fairly straightforward so I had no significant bugs during coding.</p>
 
  <div align="left">
     <table>
@@ -82,6 +83,7 @@
 <p>
 	De Casteljau’s algorithm can be extended to Bezier surfaces if we break down the control points into 2 parts and apply the algorithm accordingly. In the example, there’s a set of (n x n) control points, and therefore we can break them down into n groups of n control points. We separate apply de Casteljau’s algorithm to each group to get 1 single point per group using a parameter u. Then, we apply de Casteljau’s algorithm to those points using parameter v. The evaluationStep function follows the same structure as the one from the previous part. The difference is now the points are in 3D instead of 2D. The evaluate1D function runs all the iterations of the recursive algorithm until we get down 1 point given n control points. The evaluate function calls the evaluate1D functions and run the algorithm like described above.
 </p>
+<p>The implementation of this part was fairly straightforward so I had no significant bugs during coding.</p>
 <div align="middle">
 	<tr>
 		<td>
@@ -96,6 +98,7 @@
 <p>
 	To implement the area-weighted vertex normal, I had to iterate through all the faces that are connected to the targeted vertex. For every iteration, I fetched the face’s normal and summed them up. After summing them up, I normalize the vector and return it to the normal function. The faces cannot be accessed directly; therefore, I need to use the half-edges. Using the twin and next attributes of the half-edge, I can traverse through all the faces connected to the vertex.
 </p>
+<p>The implementation of this part was fairly straightforward so I had no significant bugs during coding.</p>
 <div align="left">
     <table>
         <tr>
@@ -199,6 +202,9 @@
         </tr>
     </table>
 </div>
+<p>
+    I had some trouble with doing the calculations for the new points in this part. I was using integers like 3 and 8 to do the calculations, but I had to use floats such as 3.0 and 8.0. This gave the wrong precision which affected the quality of my mesh when rendered.
+</p>
 
 </div></body>
 </html>
