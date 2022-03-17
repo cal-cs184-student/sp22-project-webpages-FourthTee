@@ -1,7 +1,262 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-1 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Rasterizer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h1>
+<h1 align="middle">Project 3-1: Pathtracer 1</h1>
+<h2 align="middle">Fourth Teerakapibal, CS184</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>In this project, I’ve built a path tracer that is capable of rendering images with different lighting. Initially, I wrote code to generate the ray object and perform coordinate transformations from camera, image, and world space. I also implemented the BVH with binary search in order to help optimize primitive intersection. Then, I implemented two different light sampling techniques using the monte carlo estimator to estimate the scene illumination. Next, I combine the direct light and indirect light to fully implement global illumination using the russian roulette algorithm. This helps generate an unbiased estimator for the monte carlo estimation. Finally, I implemented the adaptive sampling algorithm which adjusts the sampling rate for each pixel. This helps create noise-free images while using less samples for some of the pixels.
+</p>
+<p>
+While working through the project, I had the biggest problem trying to implement the bounding box in part 2. I decided to use the centroid’s midpoint as the heuristic to split the primitives. However, I was not splitting the primitives correctly. After consulting Piazza, I realized that I need to use the std::partition function which will help perform the split. The data structure used to store the primitives is non-intuitive since it was an iterator instead of the list. However, after using the std::partition function I was able to solve all the problems I was having.
+</p>
+
+
+<h3 align="middle">Part 1: Ray Generation and Scene Intersection</h3>
+<p>The algorithm I used for generate_ray was based on the diagram given by the project specs. The new plane in camera space has a bottom left and top right coordinate given by (-tan(hFov / 2), -tan(vFov / 2), -1) and (tan(hFov / 2), tan(vFov / 2), -1) respectively. Then, I figured out the width and height of this plane and rescaled the coordinates in image space to the one on this plane. After figuring out the coordinates in camera space I used the c2w matrix to convert the coordinates into world space. Finally, I normalized the vector and returned it.</p>
+
+<p>For the raytrace_pixel function I looped through all the numbers of samples and generated the sample using the get_sample function. This returns an (x, y) in the range of ([0,1], [0,1]) which I added to the input (x, y) coordinates. Next, I scaled these coordinates based on the width and height and passed into the generate_ray function. Finally, I call the est_radiance_global_illumination function to get the vector representing the value of the pixel. After going through the loop, I averaged the pixel value and assigned it into the sampleBuffer.</p>
+
+<p>For my primitive intersection, I followed the equations listed in lecture to determine the t-value given the shape. The two shapes I had to find an intersection for are triangles and spheres. My triangle intersection algorithm is based on ray-plane intersection. I constructed a plane using the edges of the triangle and the cross product. This generated the normal of the plane, then I picked a point on the plane. Once, I have that I can determine the ray-triangle intersection. Later, I implemented the moller trombone algorithm from the lecture which made it easier to code up. My sphere intersection was the closed form solution listed in lecture.</p>
+
+
+
+ <div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/part1/CBempty.png" align="left" width="500px" />
+                
+            </td>
+            <td>
+                <img src="images/part1/CBgems.png" align="middle" width="500px" />
+                
+            </td>
+        </tr>
+        <tr>
+			<td>
+                <img src="images/part1/CBspheres.png" align="middle" width="500px" />
+            </td>
+            
+        </tr>
+    </table>
+</div>
+
+<h3 align="middle">Part 2: Bounding Volume Hierarchy</h3>
+<p>
+	My BVH construction is based on the algorithm described in the lecture. I initially check for the number of primitives and if it is greater than the amount allowed in the leaf node I perform the binary tree construction. In the construction, I split the primitives based on their centroid’s location. When looping through the primitives I compute the average of their centroids in all 3 dimensions. Based upon which dimension had the biggest variation (difference between the smallest and largest value), I will select that dimension to split on. Using lambda functions and the std::partition function, assign all the primitives with centroids less that the split point to the left node and the rest to the right node. Making recursive calls to the construction function will yield the binary tree structure. At any point where the number of primitives is able to fit in the leaf node the stop condition is applied and the leaf node is created.
+</p>
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/part2/CBlucy.png" align="left" width="500px" />
+                
+            </td>
+            <td>
+                <img src="images/part2/cow.png" align="middle" width="500px" />
+                
+            </td>
+        </tr>
+        <tr>
+			<td>
+                <img src="images/part2/maxplanck.png" align="middle" width="500px" />
+            </td>
+            
+        </tr>
+    </table>
+</div>
+
+<h3 align="middle">Part 3: Direct Illumination</h3>
+<p>
+	There are two direct light implementations I wrote in this section: uniform hemisphere sampling and importance sampling. For the uniform hemisphere sampling, I first sample the w_in directions using the hemisphereSampler to get incoming ray directions. Then, I converted the vector into world space using the o2w matrix. Next, I constructed the ray from the hit point in the direction of the w_in. After checking for intersection between the ray and the bounding box, I followed the monte carlo estimator equation and averaged the value for all the samples. The importance sampling uses a similar approach to the uniform hemisphere sampling; however, we are not also iterating through all the light sources and using the sample_L function. For each light source, we compute the ray similarly to the hemisphere sampling, but instead check if there is no intersection. This means the ray is not blocked and therefore the illumination needs to happen. We follow the same monte carlo estimator; however, the pdf is no longer a constant. After we average the samples given a light source, we sum up all the contributions for all the light sources. 
+</p>
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/part3/bunny_64_32.png" align="left" width="500px" />
+                <figcaption align="middle"> Bunny image with important sampling.</figcaption>
+            </td>
+            <td>
+                <img src="images/part3/CBbunny_H_64_32.png" align="middle" width="500px" />
+                <figcaption align="middle"> Bunny image with uniform hemisphere sampling.</figcaption>
+                
+            </td>
+        </tr>
+    </table>
+</div>
+<p>
+	As we can see in the images, there is a lot more noise in the uniform hemisphere sampling lighting compared to the important sampling lighting. Since, we are obtaining lighting directions uniformly, we get more rays in directions that don’t matter to us. This creates noise when rendering and causes the graining look on the image. When we do importance sampling, we are choosing directions via the PDF which targets the light rays in directions we want. This reduces the noise when rendering the image.
+</p>
+
+<h4 align="middle">Bunny image rendered at different light ray samples</h4>
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/part3/CBbunny_1.png" align="left" width="500px" />
+                <figcaption align="middle"> Bunny image with 1 light ray on importance sampling.</figcaption>
+                
+            </td>
+            <td>
+                <img src="images/part3/CBbunny_4.png" align="middle" width="500px" />
+                <figcaption align="middle"> Bunny image with 4 light ray on importance sampling.</figcaption>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <img src="images/part3/CBbunny_16.png" align="left" width="500px" />
+                <figcaption align="middle"> Bunny image with 16 light ray on importance sampling.</figcaption>
+                
+            </td>
+            <td>
+                <img src="images/part3/CBbunny_64.png" align="middle" width="500px" />
+                <figcaption align="middle"> Bunny image with 64 light ray on importance sampling.</figcaption>
+                
+            </td>
+        </tr>
+    </table>
+</div>
+
+<h3 align="middle">Part 4: Global Illumination</h3>
+<div align="middle">
+<img src="images/part4/spheres_global.png" align="middle" width="500px" />
+<figcaption align="middle"> Sphere image with global illumination (Direct and Indirect lighting).</figcaption>
+</div>
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/part4/spheres_direct.png" align="left" width="500px" />
+                <figcaption align="middle"> Sphere image with only direct lighting.</figcaption>
+            </td>
+            <td>
+                <img src="images/part4/spheres_indirect.png" align="middle" width="500px" />
+                <figcaption align="middle"> Sphere image with only indirect lighting.</figcaption>
+            </td>
+        </tr>
+    </table>
+</div>
+<p>
+	For indirect illumination, I implemented a recursive algorithm which computes one or more bounces of light. In order to get an unbiased estimator of the integral, I had to implement the russian roulette algorithm. Setting the probability of termination to 0.3, I decide whether to terminate using the coin_flip function. If the algorithm terminates, then the radiance is returned. If not, then the algorithm recursively calls itself to decrement the depth of the ray by 1. Once the depth of the ray reaches 0 or the algorithm terminates the radiance is returned. The input direction, pdf, and the radiance is all computed through the sample_f function and the integrand follows the same structure as the estimator discussed in lecture. There is a multiplicative factor regarding the probability of russian roulette incorporated to make the estimator unbiased.
+</p>
+<h4 align="middle">CBbunny.dae scene rendered at different max_ray_depth</h4>
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/part4/bunny_global_0.png" align="left" width="500px" />
+                <figcaption align="middle"> CBbunny.dae with max_ray_depth 0.</figcaption>
+            </td>
+            <td>
+                <img src="images/part4/bunny_global_1.png" align="left" width="500px" />
+                <figcaption align="middle"> CBbunny.dae with max_ray_depth 1.</figcaption>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <img src="images/part4/bunny_global_2.png" align="left" width="500px" />
+                <figcaption align="middle"> CBbunny.dae with max_ray_depth 2.</figcaption>
+            </td>
+            <td>
+                <img src="images/part4/bunny_global_3.png" align="left" width="500px" />
+                <figcaption align="middle"> CBbunny.dae with max_ray_depth 3.</figcaption>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <img src="images/part4/bunny_global_100.png" align="left" width="500px" />
+                <figcaption align="middle"> CBbunny.dae with max_ray_depth 100.</figcaption>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<h4 align="middle">Sphere scene rendered at different samples-per-pixel</h4>
+
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/part4/sphere_s_1.png" align="left" width="500px" />
+                 <figcaption align="middle"> Sphere with 1 sample-per-pixel.</figcaption>
+            </td>
+            <td>
+                <img src="images/part4/sphere_s_2.png" align="left" width="500px" />
+                <figcaption align="middle"> Sphere with 2 sample-per-pixel.</figcaption>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <img src="images/part4/sphere_s_8.png" align="left" width="500px" />
+                <figcaption align="middle"> Sphere with 8 sample-per-pixel.</figcaption>
+            </td>
+            <td>
+                <img src="images/part4/sphere_s_16.png" align="left" width="500px" />
+                <figcaption align="middle"> Sphere with 16 sample-per-pixel.</figcaption>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <img src="images/part4/sphere_s_64.png" align="left" width="500px" />
+                <figcaption align="middle"> Sphere with 64 sample-per-pixel.</figcaption>
+            </td>
+            <td>
+                <img src="images/part4/sphere_s_1024.png" align="left" width="500px" />
+                <figcaption align="middle"> Sphere with 1024 sample-per-pixel.</figcaption>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<h3 align="middle">Part 5: Adaptive Sampling</h3>
+<p>
+	In order to do adaptive sampling, I had to keep track of the s1 and s2 variable described in the project specs. After running through each sample in the raytrace_pixel function, I implented the convergence test. I computed the value of variable “I” and tested if it was less than the maxTolerance multiplied by the running mean. If convergence was met then I early exit the loop and change the number of samples to equal where the loop exited. The number of samples effect the amount of noise in the image and some areas of the image requires less samples to get rid of noise. The test just checks whether the amount of samples is enough to alleviate the noise in the image.
+</p>
+<div align="middle">
+    <table>
+        <tr>
+            <td>
+                <img src="images/part5/sphere_s_2048.png" align="middle" width="500px" />
+                <figcaption align="middle"> Sphere scene with adaptive sampling.</figcaption>
+            </td>
+            <td>
+                <img src="images/part5/sphere_s_2048_rate.png" align="middle" width="500px" />
+                <figcaption align="middle"> Sphere scene sampling rate map.</figcaption>
+            </td>
+        </tr>
+       
+    </table>
+</div>
+
+</div></body>
 </html>
