@@ -178,6 +178,7 @@ While working through the project, I had the biggest problem trying to implement
 <p>
 	For indirect illumination, I implemented a recursive algorithm which computes one or more bounces of light. In order to get an unbiased estimator of the integral, I had to implement the russian roulette algorithm. Setting the probability of termination to 0.3, I decide whether to terminate using the coin_flip function. If the algorithm terminates, then the radiance is returned. If not, then the algorithm recursively calls itself to decrement the depth of the ray by 1. Once the depth of the ray reaches 0 or the algorithm terminates the radiance is returned. The input direction, pdf, and the radiance is all computed through the sample_f function and the integrand follows the same structure as the estimator discussed in lecture. There is a multiplicative factor regarding the probability of russian roulette incorporated to make the estimator unbiased.
 </p>
+
 <h4 align="middle">CBbunny.dae scene rendered at different max_ray_depth</h4>
 <div align="left">
     <table>
