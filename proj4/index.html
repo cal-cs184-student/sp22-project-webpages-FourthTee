@@ -1,7 +1,235 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 4 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Clothsim</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h1>
+<h1 align="middle">Project 4 Cloth Simulator</h1>
+<h2 align="middle">Fourth Teerakapibal, CS184</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>
+    In this project, I build a cloth simulator similar to the rope simulator done in one of the discussion sections. The cloth simulator is created by combining multiple point masses and connecting them via different types of springs: shearing, bending, and structural. After incorporating all the physics relating to the forces acting on the cloth, I was able to realistically simulate cloth in set environments. I also added code related to collisions which showed how the cloth reacts when colliding with other objects and itself (folding). Finally, I implemented the shaders which help give different types of shading to the cloth. The bump and displacement mapping also gave a sense of texture to the cloth.
+</p>
+
+<p>
+    Most of the cloth simulation was fairly straightforward and similar to the ropes simulation implemented during the discussion. However, my biggest problem was with the GLSL shader portion of the code. I had a difficult time understanding how to use the variables in the shader and what the shader should be outputting. This was solved via posting on Piazza and doing trial and error checking on the code. Once I was able to get an understanding of the diffuse shading code, other parts of the code were much easier. 
+</p>
+<h3 align="middle">Part 1: Masses and springs</h3>
+<p>
+    In this section of the project, I modified the initialization code for the cloth in the simulator. Here I went and added the point masses and spring to the cloth using the constraints listed in the specs. There is 3 type of springs that connects the point masses differently: shearing, structural, and bending. The code here was fairly simple. I initialize each point mass to its appropriate coordinates and added them to the list of point masses. Each spring is then initialized after all the point masses have been added.
+</p>
+ <div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/p1-1.png" align="left" width="500px" />
+                <figcaption align="middle"> Image scene/pinned2.json with point masses and springs</figcaption>
+            </td>
+            <td>
+                <img src="images/p1-noshear.png" align="middle" width="500px" />
+                <figcaption align="middle"> Wireframe without shearing constraints</figcaption>
+            </td>
+        </tr>
+        <tr>
+			<td>
+                <img src="images/p1-onlyshear.png" align="middle" width="500px" />
+                <figcaption align="middle"> Wireframe with only shearing constraints</figcaption>
+            </td>
+			<td>
+                <img src="images/p1-all.png" align="middle" width="500px" />
+                <figcaption align="middle"> Wireframe with all the constraints</figcaption>
+                
+            </td>
+        </tr>
+    </table>
+</div>
+
+<h3 align="middle">Part 2: Simulation via numerical integration</h3>
+<p>
+    In this section, I wrote code to enable the simulation of the cloth. In order for the cloth to move, we need to apply physics equations that govern the physical movement of the cloth. Here, I computed the total force acting on each point mass using the formula given in the spec. In addition, I updated the new point mass positions using Verlet integration and applied a maximum position change constraint. 
+</p>
+<img src="images/p2-def.png" align="left" />
+<figcaption align="middle"> Cloth with default parameters</figcaption>
+
+<table>
+    <tr>
+        <td>
+            <img src="images/p2-lowk.png" align="middle" width="500px" />
+            <figcaption align="middle"> Cloth with low spring constant </figcaption>
+        </td>
+        <td>
+            <img src="images/p2-highk.png" align="middle" width="500px" />
+            <figcaption align="middle"> Cloth with high spring constant</figcaption>
+        </td>
+    </tr>
+</table>
+
+<p>
+    The effects of changing the spring constant (ks) can be seen in the images above. With a greater spring constant, the spring between the point masses becomes stiffer. This means the cloth as a whole is more rigid and is less subjected to bending. Therefore, when we hang the cloth it seems like there is less slack on the cloth. With a smaller spring constant, the cloth is more flexible and thus there is more slack in the cloth. The density of the cloth will impact its mass which then affects the cloth's movement. Higher density means more mass which means more acceleration to cloth. Therefore, we see the cloth droop more when it is being hanged. Damping affects the movement of the cloth when is being dropped. The more the damping, the less oscillation occurs when the cloth moves from its starting position. With less damping, you can definitely see a lot more oscillation that occurs to the cloth.
+</p>
+
+<img src="images/p2-4.png" align="middle" />
+<figcaption align="middle"> Image scene/pinned4.json with default parameters</figcaption>
+
+<h3 align="middle">Part 3: Handling collisions with other objects</h3>
+<p>
+    In this part, I wrote code to handle when the cloth comes into contact with other objects. The objects we are considering for this part are spheres and planes. In order for a collision simulation to happen, we need to correct the positions of the point masses that protrude into the objects. In the code, search for the points that end up lying inside the object and move them up to the surface using a correction vector. By doing this, we can see that the cloth now lies on top of the objects and does not go through it. In the case of the sphere, the cloth resides on top and wraps around the sphere. While for the plane case, the cloth just sits on the surface of the sphere once it makes contact.</p>
+
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/p3-1.png" align="left" width="500px" />
+                <figcaption align="middle"> Cloth on sphere with ks=5000 </figcaption>
+            </td>
+            <td>
+                <img src="images/p3-500.png" align="middle" width="500px" />
+                <figcaption align="middle"> Cloth on sphere with ks=500 </figcaption>
+                
+            </td>
+        </tr>
+        <tr>
+			<td>
+                <img src="images/p3-5000.png" align="middle" width="500px" />
+                <figcaption align="middle"> Cloth on sphere with ks=50000 </figcaption>
+            </td>
+			<td>
+                <img src="images/p3-flat.png" align="middle" width="500px" />
+                <figcaption align="middle"> Cloth on plane </figcaption>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<h3 align="middle">Part 4: Handling self-collisions</h3>
+
+<p>
+    In this portion of the project, I handle self-collisions that can occur with the cloth during simulation. The cloth can fold over itself which means we need to account for the point masses being on top of one another. Here, I had to loop through the pairs of the point that collide and correct them to their appropriate positions. In order to make this more efficient, I implemented a spatial hashing of the points in the coordinates plane which makes the point look up faster. After that, I implemented the correction code which move’s the point mass positions.
+</p>
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/p4-1.png" align="left" width="500px" />
+                <figcaption align="middle"> Early falling </figcaption>
+            </td>
+            <td>
+                <img src="images/p4-2.png" align="middle" width="500px" />
+                <figcaption align="middle"> Initial collision </figcaption>
+                
+            </td>
+        </tr>
+        <tr>
+			<td>
+                <img src="images/p4-3.png" align="middle" width="500px" />
+                <figcaption align="middle"> End of collision </figcaption>
+            </td>
+        </tr>
+    </table>
+</div>
+<p>
+    When we reduce the density of the cloth, we can see that the rivets in the cloth are much larger. I can see that there are fewer creases within the cloth. When we increase the spring constant, we can also see fewer creases in the cloth and the cloth itself is less bouncy when it collides with itself.
+</p>
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/p4-4.png" align="left" width="500px" />
+                <figcaption align="middle"> Carying the density </figcaption>
+            </td>
+            <td>
+                <img src="images/p4-5.png" align="middle" width="500px" />
+                <figcaption align="middle"> Varying the spring constant </figcaption>
+                
+            </td>
+        </tr>
+    </table>
+</div>
+
+<h3 align="middle">Part 5: Shader</h3>
+
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/p5-diffuse.png" align="left" width="500px" />
+                <figcaption align="middle"> Only diffuse shading </figcaption>
+            </td>
+            <td>
+                <img src="images/p5-specular.png" align="middle" width="500px" />
+                <figcaption align="middle"> Only Specular shading </figcaption>
+                
+            </td>
+        </tr>
+        <tr>
+			<td>
+                <img src="images/p5-phong.png" align="middle" width="500px" />
+                <figcaption align="middle"> Entire Blinn-Phong </figcaption>
+            </td>
+            <td>
+                <img src="images/p5-texture.png" align="middle" width="500px" />
+                <figcaption align="middle"> Texture Mapping with custom texture </figcaption>
+            </td>
+        </tr>
+    </table>
+</div>
+<p>
+    The shader program is used to provide the lighting and material effects which make objects look more realistic. The vertex represents the points that create the overall 3D shape/geometry of the object. While the fragment creates the RGB color of the pixels on the shape. In order to create the lighting, we need to define the position in 3D which the vertex shader does. In addition, we need the color which the fragment shader provides. Blinn-Phong shading model is an extension form the regular diffusion shading. In addition to the diffuse component, the Blinn-Phong shading provides the specular component which is the highlights you see within the image. This is done by adding an additional component to the specular reflected light. 
+</p>
+<div align="left">
+    <table>
+        <tr>
+            <td>
+                <img src="images/p5-bump.png" align="left" width="500px" />
+                <figcaption align="middle"> Bump mapping </figcaption>
+            </td>
+            <td>
+                <img src="images/p5-displace.png" align="middle" width="500px" />
+                <figcaption align="middle"> Displacement mapping </figcaption>
+                
+            </td>
+        </tr>
+        <tr>
+			<td>
+                <img src="images/p5-bump16.png" align="middle" width="500px" />
+                <figcaption align="middle"> Bump mapping with 16 resolution </figcaption>
+            </td>
+            <td>
+                <img src="images/p5-bump128.png" align="middle" width="500px" />
+                <figcaption align="middle"> Bump mapping with 128 resolution </figcaption>
+            </td>
+        </tr>
+    </table>
+</div>
+<p>
+    The main difference between the bump mapping and displacement mapping is that the displacement mapping changes the geometry of the shape. Here you can clearly see that the object has changed shape due to the shift in the vertex positions. However, the bump mapping retains the shape fo the object while adding the height map to the render. In the two coarsness examples, we can see that setting the resolution values lower result in a slightly coarser image with more grain. However, when we increase these values we get a more smooth image with less grain.
+</p>
+<img src="images/p5-mirror.png" align="middle"/>
+<figcaption align="middle"> Mirror Mapping </figcaption>
+</div></body>
 </html>
